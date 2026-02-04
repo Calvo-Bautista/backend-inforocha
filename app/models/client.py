@@ -1,0 +1,46 @@
+from sqlalchemy import Column, Integer, String, Text, DateTime, Enum
+from sqlalchemy.sql import func
+from sqlalchemy.orm import relationship
+from app.database import Base
+import enum
+
+
+class ClientStatus(str, enum.Enum):
+    """Client status enumeration"""
+    ACTIVE = "active"
+    PROSPECT = "prospect"
+
+
+class ClientType(str, enum.Enum):
+    """Client priority type enumeration"""
+    ALTA = "alta"
+    MEDIA = "media"
+    BAJA = "baja"
+
+
+class Client(Base):
+    """
+    Client model for customers/buyers.
+    Stores customer information and contact details.
+    """
+    __tablename__ = "clients"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    legajo = Column(String(50), unique=True, index=True)
+    name = Column(String(255), nullable=False, index=True)
+    phone = Column(String(50), nullable=False)
+    address = Column(Text)
+    industry = Column(String(255))
+    maquinas = Column(Text)
+    tipo_cliente = Column(Enum(ClientType), index=True)
+    proveedor_actual = Column(String(255))
+    status = Column(Enum(ClientStatus), default=ClientStatus.PROSPECT, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    # Relationships
+    orders = relationship("Order", back_populates="client")
+    call_logs = relationship("CallLog", back_populates="client")
+
+    def __repr__(self):
+        return f"<Client(id={self.id}, name='{self.name}', legajo='{self.legajo}')>"

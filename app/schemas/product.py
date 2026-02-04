@@ -1,0 +1,42 @@
+from pydantic import BaseModel, Field
+from typing import Optional
+from datetime import datetime
+from decimal import Decimal
+from app.models.product import ProductCategory
+
+
+class ProductBase(BaseModel):
+    """Base product schema with common fields"""
+    sku: str
+    name: str
+    description: Optional[str] = None
+    price: Decimal = Field(..., ge=0, decimal_places=2)
+    stock: int = Field(default=0, ge=0)
+    category: ProductCategory
+    is_active: bool = True
+
+
+class ProductCreate(ProductBase):
+    """Schema for creating a new product"""
+    pass
+
+
+class ProductUpdate(BaseModel):
+    """Schema for updating a product"""
+    sku: Optional[str] = None
+    name: Optional[str] = None
+    description: Optional[str] = None
+    price: Optional[Decimal] = Field(None, ge=0, decimal_places=2)
+    stock: Optional[int] = Field(None, ge=0)
+    category: Optional[ProductCategory] = None
+    is_active: Optional[bool] = None
+
+
+class ProductResponse(ProductBase):
+    """Schema for product response"""
+    id: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
