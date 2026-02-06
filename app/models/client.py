@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, Enum
+from sqlalchemy import Column, Integer, String, Text, DateTime, Enum, ForeignKey
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.database import Base
@@ -37,10 +37,12 @@ class Client(Base):
     status = Column(Enum(ClientStatus), default=ClientStatus.PROSPECT, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
 
     # Relationships
     orders = relationship("Order", back_populates="client")
     call_logs = relationship("CallLog", back_populates="client")
+    user = relationship("User", back_populates="clients")
 
     def __repr__(self):
         return f"<Client(id={self.id}, name='{self.name}', legajo='{self.legajo}')>"

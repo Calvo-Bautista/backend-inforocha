@@ -5,7 +5,7 @@ from app.database import get_db
 from app.models.client import Client
 from app.schemas.client import ClientCreate, ClientUpdate, ClientResponse
 from app.api.deps import get_current_user
-from app.models.user import User
+from app.models.user import User, UserRole
 
 router = APIRouter()
 
@@ -35,6 +35,12 @@ async def get_clients(
     """
     query = db.query(Client)
     
+    # RBAC: Filter clients based on user role
+    # ADMIN, OWNER, LOGISTICA see all clients
+    # VENDEDOR (and others) see only their own clients
+    if current_user.role not in [UserRole.ADMIN, UserRole.OWNER, UserRole.LOGISTICA]:
+        query = query.filter(Client.user_id == current_user.id)
+    
     # Filter by status
     if status_filter:
         query = query.filter(Client.status == status_filter)
@@ -61,19 +67,14 @@ async def get_client(
 ):
     """
     Get a specific client by ID.
-    
-    Args:
-        client_id: Client ID
-        db: Database session
-        current_user: Current authenticated user
-        
-    Returns:
-        Client data
-        
-    Raises:
-        HTTPException: If client not found
     """
-    client = db.query(Client).filter(Client.id == client_id).first()
+    query = db.query(Client).filter(Client.id == client_id)
+    
+    # RBAC Check for single client
+    if current_user.role not in [UserRole.ADMIN, UserRole.OWNER, UserRole.LOGISTICA]:
+        query = query.filter(Client.user_id == current_user.id)
+        
+    client = query.first()
     if not client:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -90,17 +91,6 @@ async def create_client(
 ):
     """
     Create a new client.
-    
-    Args:
-        client: Client data
-        db: Database session
-        current_user: Current authenticated user
-        
-    Returns:
-        Created client
-        
-    Raises:
-        HTTPException: If legajo already exists
     """
     # Check if legajo already exists (if provided)
     if client.legajo:
@@ -110,9 +100,26 @@ async def create_client(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Client with this legajo already exists"
             )
+    else:
+        # Auto-generate legajo: CLI-XXX
+        last_client = db.query(Client).filter(Client.legajo.like("CLI-%")).order_by(Client.legajo.desc()).first()
+        if last_client and last_client.legajo:
+            try:
+                # Extract number part
+                last_number = int(last_client.legajo.split("-")[1])
+                new_number = last_number + 1
+            except (IndexError, ValueError):
+                new_number = 1
+        else:
+            new_number = 1
+        
+        client.legajo = f"CLI-{new_number:03d}"
     
-    # Create new client
-    db_client = Client(**client.model_dump())
+    # Create new client with current user as owner
+    client_data = client.model_dump()
+    db_client = Client(**client_data)
+    db_client.user_id = current_user.id
+    
     db.add(db_client)
     db.commit()
     db.refresh(db_client)
