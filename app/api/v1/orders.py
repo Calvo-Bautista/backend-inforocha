@@ -48,7 +48,12 @@ async def get_orders(
     Returns:
         List of orders
     """
-    query = db.query(Order)
+    from sqlalchemy.orm import joinedload
+    
+    query = db.query(Order).options(
+        joinedload(Order.client),
+        joinedload(Order.items).joinedload(OrderItem.product)
+    )
     
     # Vendedores only see their own orders
     if current_user.role == UserRole.VENDEDOR:

@@ -5,6 +5,27 @@ from decimal import Decimal
 from app.models.order import OrderStatus
 
 
+# Nested schemas for related data
+class ClientBasic(BaseModel):
+    """Basic client info for order response"""
+    id: int
+    name: str
+    phone: Optional[str] = None
+    
+    class Config:
+        from_attributes = True
+
+
+class ProductBasic(BaseModel):
+    """Basic product info for order item response"""
+    id: int
+    name: str
+    sku: str
+    
+    class Config:
+        from_attributes = True
+
+
 class OrderItemBase(BaseModel):
     """Base order item schema"""
     product_id: int
@@ -21,6 +42,7 @@ class OrderItemResponse(OrderItemBase):
     """Schema for order item response"""
     id: int
     order_id: int
+    product: Optional[ProductBasic] = None
     created_at: datetime
 
     class Config:
@@ -58,6 +80,7 @@ class OrderResponse(OrderBase):
     id: int
     order_number: str
     seller_id: int
+    client: Optional[ClientBasic] = None
     items: List[OrderItemResponse]
     created_at: datetime
     updated_at: datetime
