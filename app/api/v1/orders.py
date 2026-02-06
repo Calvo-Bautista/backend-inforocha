@@ -1,10 +1,11 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 from sqlalchemy.orm import Session
 from datetime import datetime
 from app.database import get_db
 from app.models.order import Order, OrderItem, OrderStatus
 from app.models.product import Product
+from app.models.client import Client
 from app.models.user import User, UserRole
 from app.schemas.order import OrderCreate, OrderUpdate, OrderResponse
 from app.api.deps import get_current_user
@@ -29,9 +30,11 @@ def generate_order_number(db: Session) -> str:
 
 @router.get("/", response_model=List[OrderResponse])
 async def get_orders(
+    response: Response,
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
     status_filter: Optional[OrderStatus] = None,
+    search: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -64,9 +67,23 @@ async def get_orders(
     if status_filter:
         query = query.filter(Order.status == status_filter)
     
+    # Filter by search (Order ID, Order Number, or Client Name)
+    if search:
+        search_filter = f"%{search}%"
+        # Join with Client to search by client name
+        query = query.join(Client, isouter=True) # Left join to include orders without clients if any (though unlikely)
+        query = query.filter(
+            (Order.order_number.ilike(search_filter)) |
+            (Client.name.ilike(search_filter))
+        )
+    
     # Order by date descending
     query = query.order_by(Order.order_date.desc())
     
+    # Calculate total count before pagination
+    total_count = query.count()
+    response.headers["X-Total-Count"] = str(total_count)
+
     orders = query.offset(skip).limit(limit).all()
     return orders
 

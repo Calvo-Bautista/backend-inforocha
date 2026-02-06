@@ -1,5 +1,5 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.user import User
@@ -12,6 +12,7 @@ router = APIRouter()
 
 @router.get("/", response_model=List[UserResponse])
 async def get_users(
+    response: Response,
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
     role_filter: Optional[str] = None,
@@ -55,6 +56,10 @@ async def get_users(
             (User.legajo.ilike(search_filter))
         )
     
+    # Calculate total count before pagination
+    total_count = query.count()
+    response.headers["X-Total-Count"] = str(total_count)
+
     users = query.offset(skip).limit(limit).all()
     return users
 
