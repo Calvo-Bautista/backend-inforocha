@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime
 from app.database import get_db
 from app.models.order import Order, OrderItem, OrderStatus
+from app.models.product import Product
 from app.models.user import User, UserRole
 from app.schemas.order import OrderCreate, OrderUpdate, OrderResponse
 from app.api.deps import get_current_user
@@ -137,8 +138,29 @@ async def create_order(
     db.add(db_order)
     db.flush()  # Get order ID without committing
     
-    # Create order items
+    # Create order items and update stock
     for item in order.items:
+        # Get product to update stock
+        product = db.query(Product).filter(Product.id == item.product_id).first()
+        if not product:
+            db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Product with ID {item.product_id} not found"
+            )
+        
+        # Check sufficient stock
+        if product.stock < item.quantity:
+            db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Insufficient stock for product '{product.name}'. Available: {product.stock}, Requested: {item.quantity}"
+            )
+            
+        # Deduct stock
+        product.stock -= item.quantity
+        db.add(product)
+        
         db_item = OrderItem(
             **item.model_dump(),
             order_id=db_order.id
