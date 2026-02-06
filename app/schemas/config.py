@@ -10,6 +10,7 @@ class DiscountRule(BaseModel):
 class ConfigBase(BaseModel):
     shipping_cost: Decimal = Field(..., ge=0, description="Costo de envío")
     discounts: List[DiscountRule] = Field(default_factory=list, description="Lista de reglas de descuento")
+    role_permissions: dict = Field(default_factory=dict, description="Permisos por rol")
 
     @field_validator('discounts', mode='before')
     @classmethod

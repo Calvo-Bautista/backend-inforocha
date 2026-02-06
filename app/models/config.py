@@ -17,5 +17,8 @@ class BusinessConfig(Base):
     # Store discounts as a list of objects: [{"threshold": 100000, "percentage": 5}, ...]
     discounts = Column(JSON, default=list)
 
+    # Store role permissions: {"vendedor": ["productos", "clientes"], ...}
+    role_permissions = Column(JSON, default=dict)
+
     def __repr__(self):
         return "<BusinessConfig>"
