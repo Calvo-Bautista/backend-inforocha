@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
-from app.api.v1 import auth, products, clients, orders, call_logs, users
+from app.api.v1 import auth, products, clients, orders, call_logs, users, config
 
 # Create FastAPI instance
 app = FastAPI(
@@ -15,8 +15,8 @@ app = FastAPI(
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify allowed origins
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -49,3 +49,4 @@ app.include_router(clients.router, prefix=f"{settings.API_V1_STR}/clients", tags
 app.include_router(orders.router, prefix=f"{settings.API_V1_STR}/orders", tags=["Orders"])
 app.include_router(call_logs.router, prefix=f"{settings.API_V1_STR}/call-logs", tags=["Call Logs"])
 app.include_router(users.router, prefix=f"{settings.API_V1_STR}/users", tags=["Users"])
+app.include_router(config.router, prefix=f"{settings.API_V1_STR}/config", tags=["Configuration"])
