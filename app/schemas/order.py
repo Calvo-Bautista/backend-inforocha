@@ -11,7 +11,18 @@ class ClientBasic(BaseModel):
     id: int
     name: str
     phone: Optional[str] = None
+    address: Optional[str] = None
     
+    class Config:
+        from_attributes = True
+
+
+class UserBasic(BaseModel):
+    """Basic user info for order response"""
+    id: int
+    name: str
+    email: str
+
     class Config:
         from_attributes = True
 
@@ -80,6 +91,7 @@ class OrderResponse(OrderBase):
     id: int
     order_number: str
     seller_id: int
+    seller: Optional[UserBasic] = None
     client: Optional[ClientBasic] = None
     items: List[OrderItemResponse]
     created_at: datetime
