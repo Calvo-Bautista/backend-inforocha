@@ -34,6 +34,9 @@ class Order(Base):
     factura_a = Column(Boolean, default=False)
     status = Column(Enum(OrderStatus), default=OrderStatus.PENDIENTE, index=True)
     notes = Column(Text)
+    repair_description = Column(Text, nullable=True)
+    repair_amount = Column(Numeric(10, 2), default=0, nullable=False)
+    payment_method = Column(Enum('transferencia', 'efectivo', 'tarjeta', name='paymentmethod'), nullable=False, default='efectivo')
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 

@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.client import Client
+from app.models.client_printer import ClientPrinter
 from app.schemas.client import ClientCreate, ClientUpdate, ClientResponse
 from app.api.deps import get_current_user
 from app.models.user import User, UserRole
@@ -121,13 +122,25 @@ async def create_client(
         client.legajo = f"CLI-{new_number:03d}"
     
     # Create new client with current user as owner
-    client_data = client.model_dump()
+    client_data = client.model_dump(exclude={'printers'})
     db_client = Client(**client_data)
     db_client.user_id = current_user.id
     
     db.add(db_client)
     db.commit()
     db.refresh(db_client)
+    
+    # Add printers if provided
+    if client.printers:
+        for printer_model in client.printers:
+            if printer_model.strip():  # Only add non-empty printer models
+                printer = ClientPrinter(
+                    client_id=db_client.id,
+                    printer_model=printer_model.strip()
+                )
+                db.add(printer)
+        db.commit()
+        db.refresh(db_client)
     
     return db_client
 
@@ -161,10 +174,24 @@ async def update_client(
             detail="Client not found"
         )
     
-    # Update client fields
-    update_data = client.model_dump(exclude_unset=True)
+    # Update client fields (excluding printers)
+    update_data = client.model_dump(exclude_unset=True, exclude={'printers'})
     for field, value in update_data.items():
         setattr(db_client, field, value)
+    
+    # Handle printers update if provided
+    if client.printers is not None:
+        # Delete existing printers
+        db.query(ClientPrinter).filter(ClientPrinter.client_id == client_id).delete()
+        
+        # Add new printers
+        for printer_model in client.printers:
+            if printer_model.strip():  # Only add non-empty printer models
+                printer = ClientPrinter(
+                    client_id=client_id,
+                    printer_model=printer_model.strip()
+                )
+                db.add(printer)
     
     db.commit()
     db.refresh(db_client)

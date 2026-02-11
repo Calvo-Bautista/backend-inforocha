@@ -1,5 +1,6 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, List
+from typing_extensions import Literal
 from datetime import date, datetime
 from decimal import Decimal
 from app.models.order import OrderStatus
@@ -73,6 +74,9 @@ class OrderBase(BaseModel):
     factura_a: bool = False
     status: OrderStatus = OrderStatus.PENDIENTE
     notes: Optional[str] = None
+    repair_description: Optional[str] = None
+    repair_amount: Decimal = Field(default=0, ge=0, decimal_places=2)
+    payment_method: Literal['transferencia', 'efectivo', 'tarjeta'] = 'efectivo'
 
 
 class OrderCreate(OrderBase):
@@ -99,3 +103,10 @@ class OrderResponse(OrderBase):
 
     class Config:
         from_attributes = True
+
+
+class OrderStats(BaseModel):
+    """Schema for order statistics"""
+    total_orders: int
+    total_revenue: Decimal
+    by_status: dict[str, int]

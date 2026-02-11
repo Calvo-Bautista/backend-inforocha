@@ -3,11 +3,12 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 from sqlalchemy.orm import Session
 from datetime import datetime
 from app.database import get_db
+from sqlalchemy import func
 from app.models.order import Order, OrderItem, OrderStatus
 from app.models.product import Product
 from app.models.client import Client
 from app.models.user import User, UserRole
-from app.schemas.order import OrderCreate, OrderUpdate, OrderResponse
+from app.schemas.order import OrderCreate, OrderUpdate, OrderResponse, OrderStats
 from app.api.deps import get_current_user
 
 router = APIRouter()
@@ -26,6 +27,56 @@ def generate_order_number(db: Session) -> str:
     # Generate new order number
     order_number = f"ORD-{year}-{count + 1:03d}"
     return order_number
+
+
+@router.get("/stats", response_model=OrderStats)
+async def get_order_stats(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get aggregated order statistics.
+    """
+    query = db.query(Order)
+    
+    # Filter by user role
+    if current_user.role == UserRole.VENDEDOR:
+        query = query.filter(Order.seller_id == current_user.id)
+        
+    # Total count
+    total_orders = query.count()
+    
+    # Total revenue
+    total_revenue = query.with_entities(func.sum(Order.total)).scalar() or 0
+    
+    # Count by status
+    status_counts = db.query(
+        Order.status, func.count(Order.status)
+    )
+    
+    if current_user.role == UserRole.VENDEDOR:
+        status_counts = status_counts.filter(Order.seller_id == current_user.id)
+        
+    status_counts = status_counts.group_by(Order.status).all()
+    
+    by_status = {
+        "pendiente": 0,
+        "preparacion": 0,
+        "enviado": 0,
+        "entregado": 0
+    }
+    
+    for status_enum, count in status_counts:
+        # Handle both Enum objects and string values
+        status_key = status_enum.value if hasattr(status_enum, 'value') else str(status_enum)
+        if status_key in by_status:
+            by_status[status_key] = count
+
+    return {
+        "total_orders": total_orders,
+        "total_revenue": total_revenue,
+        "by_status": by_status
+    }
 
 
 @router.get("/", response_model=List[OrderResponse])

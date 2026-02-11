@@ -11,11 +11,11 @@ class ClientStatus(str, enum.Enum):
     PROSPECT = "prospect"
 
 
-class ClientType(str, enum.Enum):
-    """Client priority type enumeration"""
-    ALTA = "alta"
-    MEDIA = "media"
-    BAJA = "baja"
+class Priority(str, enum.Enum):
+    """Client priority enumeration"""
+    ALTA = "ALTA"
+    MEDIA = "MEDIA"
+    BAJA = "BAJA"
 
 
 class Client(Base):
@@ -31,8 +31,8 @@ class Client(Base):
     phone = Column(String(50), nullable=False)
     address = Column(Text)
     industry = Column(String(255))
-    maquinas = Column(Text)
-    tipo_cliente = Column(Enum(ClientType), index=True)
+    maquinas = Column(Text)  # Deprecated: use printers relationship instead
+    priority = Column(Enum(Priority), nullable=True, index=True)  # Renamed from tipo_cliente
     proveedor_actual = Column(String(255))
     status = Column(Enum(ClientStatus), default=ClientStatus.PROSPECT, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -43,6 +43,7 @@ class Client(Base):
     orders = relationship("Order", back_populates="client")
     call_logs = relationship("CallLog", back_populates="client")
     user = relationship("User", back_populates="clients")
+    printers = relationship("ClientPrinter", back_populates="client", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Client(id={self.id}, name='{self.name}', legajo='{self.legajo}')>"
