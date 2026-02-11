@@ -41,7 +41,7 @@ class Client(Base):
 
     # Relationships
     orders = relationship("Order", back_populates="client")
-    call_logs = relationship("CallLog", back_populates="client")
+
     user = relationship("User", back_populates="clients")
     printers = relationship("ClientPrinter", back_populates="client", cascade="all, delete-orphan")
 
