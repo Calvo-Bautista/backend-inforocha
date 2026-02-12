@@ -10,6 +10,17 @@ from app.models.client import Client
 from app.models.user import User, UserRole
 from app.schemas.order import OrderCreate, OrderUpdate, OrderResponse, OrderStats
 from app.api.deps import get_current_user
+import base64
+from pathlib import Path
+from jinja2 import Environment, FileSystemLoader
+from xhtml2pdf import pisa
+from fastapi.responses import Response, StreamingResponse
+import io
+
+def format_currency(value):
+    if value is None:
+        return "$ 0"
+    return f"$ {value:,.0f}".replace(",", ".")
 
 router = APIRouter()
 
@@ -174,6 +185,74 @@ async def get_order(
         )
     
     return order
+
+
+@router.get("/{order_id}/remito")
+async def generate_remito(
+    order_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Generate PDF remito for an order.
+    
+    Args:
+        order_id: Order ID
+        db: Database session
+        current_user: Current authenticated user
+        
+    Returns:
+        PDF file stream
+    """
+    order = db.query(Order).filter(Order.id == order_id).first()
+    if not order:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Order not found"
+        )
+    
+    # Vendedores can only see their own orders
+    if current_user.role == UserRole.VENDEDOR and order.seller_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied"
+        )
+
+    # Get logo base64
+    logo_path = Path("C:/Users/bauti/OneDrive/Desktop/proyectos/ROCHA/Nombre.png")
+    logo_base64 = ""
+    if logo_path.exists():
+        with open(logo_path, "rb") as image_file:
+            logo_base64 = base64.b64encode(image_file.read()).decode('utf-8')
+
+    # Setup Jinja2 environment
+    template_dir = Path(__file__).parent.parent.parent / "templates"
+    env = Environment(loader=FileSystemLoader(str(template_dir)))
+    template = env.get_template("remito.html")
+
+    # Render HTML
+    html_content = template.render(
+        order=order,
+        logo_base64=logo_base64,
+        format_currency=format_currency
+    )
+
+    # Generate PDF
+    pdf_file = io.BytesIO()
+    pisa_status = pisa.CreatePDF(html_content, dest=pdf_file)
+    
+    if pisa_status.err:
+        raise HTTPException(status_code=500, detail="Error generating PDF")
+
+    pdf_file.seek(0)
+    
+    filename = f"Remito-{order.order_number}.pdf"
+    
+    return StreamingResponse(
+        pdf_file,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
 
 
 @router.post("/", response_model=OrderResponse, status_code=status.HTTP_201_CREATED)
