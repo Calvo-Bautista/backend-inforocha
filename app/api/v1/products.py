@@ -175,31 +175,123 @@ async def update_product(
     return db_product
 
 
-@router.delete("/{product_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_product(
-    product_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.OWNER]))
-):
-    """
-    Delete a product (admin/owner only).
-    
-    Args:
-        product_id: Product ID
-        db: Database session
-        current_user: Current authenticated user (must be admin or owner)
-        
-    Raises:
-        HTTPException: If product not found
-    """
-    db_product = db.query(Product).filter(Product.id == product_id).first()
-    if not db_product:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Product not found"
-        )
-    
     db.delete(db_product)
     db.commit()
     
     return None
+
+
+@router.get("/budget/download", response_class=Response)
+async def download_budget(
+    response: Response,
+    category: Optional[str] = None,
+    search: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Generate and download a PDF budget of products.
+    
+    Args:
+        category: Filter by product category
+        search: Search in name, description, or SKU
+        db: Database session
+        current_user: Current authenticated user
+        
+    Returns:
+        PDF file stream
+    """
+    import io
+    from xhtml2pdf import pisa
+    from jinja2 import Environment, FileSystemLoader
+    from datetime import datetime
+    import os
+
+    # Query products
+    query = db.query(Product)
+    
+    # Filter by category
+    if category and category != 'all':
+        query = query.filter(Product.category == category)
+    
+    # Search in name, description, or SKU
+    if search:
+        search_filter = f"%{search}%"
+        query = query.filter(
+            (Product.name.ilike(search_filter)) |
+            (Product.description.ilike(search_filter)) |
+            (Product.sku.ilike(search_filter))
+        )
+    
+    # Only show active products
+    query = query.filter(Product.is_active == True)
+    
+    # Order by category and name
+    products = query.order_by(Product.category, Product.name).all()
+    
+    # Group products by category
+    products_by_category = {}
+    for product in products:
+        cat = product.category or "Sin Categoría"
+        if cat not in products_by_category:
+            products_by_category[cat] = []
+        products_by_category[cat].append(product)
+        
+    # Setup Jinja2 environment
+    template_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "templates")
+    env = Environment(loader=FileSystemLoader(template_dir))
+    template = env.get_template("presupuesto.html")
+    
+    # Prepare context
+    # Try to find logo path
+    base_dir = os.getcwd()
+    # Check common locations for logo
+    logo_path = None
+    possible_paths = [
+        os.path.join(base_dir, "app", "static", "Logo.png"), # If we had it here
+        os.path.join(base_dir, "Logo.png"),
+        # Absolute path fallback to what we saw in file system if needed, but better to use relative if possible or copy it.
+        # For now let's try to assume it might be in a static folder or just pass None and handle in template.
+        # We saw c:\Users\bauti\OneDrive\Desktop\proyectos\ROCHA\frontmaqueta\informatica-rocha-system\public\Logo.png
+        # We can try to point to that if we are running locally
+        r"c:\Users\bauti\OneDrive\Desktop\proyectos\ROCHA\frontmaqueta\informatica-rocha-system\public\Logo.png"
+    ]
+    
+    for path in possible_paths:
+        if os.path.exists(path):
+            logo_path = path
+            break
+            
+    context = {
+        "date": datetime.now().strftime("%A, %d de %B de %Y"),
+        "products_by_category": products_by_category,
+        "logo_path": logo_path
+    }
+    
+    # Render HTML
+    html_content = template.render(context)
+    
+    # Generate PDF
+    pdf_buffer = io.BytesIO()
+    pisa_status = pisa.CreatePDF(
+        io.BytesIO(html_content.encode("utf-8")),
+        dest=pdf_buffer
+    )
+    
+    if pisa_status.err:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error generating PDF"
+        )
+        
+    pdf_buffer.seek(0)
+    
+    # Return response
+    return Response(
+        content=pdf_buffer.getvalue(),
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f"attachment; filename=presupuesto_{datetime.now().strftime('%Y%m%d')}.pdf"
+        }
+    )
+

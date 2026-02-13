@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Presupuesto - Mayorista Rocha</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+
+            @top-center {
+                content: "Presupuesto - Mayorista Rocha";
+            }
+
+            @bottom-center {
+                content: "Página " counter(page);
+            }
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            /* padding: 20px; Removed padding as @page handles margins */
+            max-width: 900px;
+            /* Kept but context is PDF, often ignored */
+            margin: 0 auto;
+        }
+
+        .presupuesto-container {
+            border: 1px solid #333;
+            /* Standard border might not render perfectly in all PDF engines, but keeping */
+            padding: 20px;
+        }
+
+        .header {
+            /* display: flex; Flexbox support in xhtml2pdf is limited/non-existent. Use tables for layout. */
+            width: 100%;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 15px;
+        }
+
+        .header-table {
+            width: 100%;
+        }
+
+        .header-left {
+            width: 50%;
+            vertical-align: top;
+        }
+
+        .header-right {
+            width: 50%;
+            text-align: right;
+            vertical-align: top;
+        }
+
+        .logo {
+            width: 80px;
+            height: 80px;
+        }
+
+        .documento-info {
+            text-align: right;
+        }
+
+        .documento-info h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+            margin-top: 0;
+        }
+
+        .fecha {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .vendedor-info {
+            margin-bottom: 25px;
+            padding: 15px;
+            border: 1px solid #ddd;
+        }
+
+        .vendedor-info h3 {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 8px;
+            margin-top: 0;
+        }
+
+        .vendedor-nombre {
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .productos-section {
+            margin-bottom: 25px;
+        }
+
+        .productos-header {
+            background-color: #f5f5f5;
+            padding: 10px;
+            margin-bottom: 15px;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .categoria-titulo {
+            font-size: 15px;
+            font-weight: bold;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            color: #333;
+            padding: 8px 0;
+            border-bottom: 1px solid #ddd;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            /* Often supported */
+            margin-bottom: 20px;
+        }
+
+        th {
+            background-color: #f5f5f5;
+            padding: 10px;
+            text-align: left;
+            font-size: 14px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        td {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            font-size: 14px;
+            vertical-align: top;
+        }
+
+        .sku-column {
+            color: #666;
+            font-size: 12px;
+            width: 20%;
+        }
+
+        .descripcion-producto {
+            font-weight: bold;
+            margin-bottom: 3px;
+        }
+
+        .detalles-producto {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .precio-column {
+            text-align: right;
+            font-weight: bold;
+            width: 20%;
+        }
+
+        .footer {
+            margin-top: 30px;
+            padding-top: 15px;
+            border-top: 1px solid #ddd;
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="presupuesto-container">
+        <!-- Header using table strictly for layout compatibility -->
+        <div class="header">
+            <table class="header-table">
+                <tr>
+                    <td class="header-left">
+                        <!-- Try to load logo, fallback text if not possible. Path needs to be handled by backend -->
+                        {% if logo_path %}
+                        <img src="{{ logo_path }}" alt="Logo" class="logo">
+                        {% else %}
+                        <h2>ROCHA</h2>
+                        {% endif %}
+                    </td>
+                    <td class="header-right">
+                        <div class="documento-info">
+                            <h1>PRESUPUESTO</h1>
+                            <div class="fecha">Fecha: {{ date }}</div>
+                        </div>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Vendedor -->
+        <div class="vendedor-info">
+            <h3>Vendedor</h3>
+            <div class="vendedor-nombre">Roberto Rocha - Mayorista Rocha</div>
+        </div>
+
+        <!-- Productos -->
+        <div class="productos-section">
+            <div class="productos-header">
+                📦 Listado de Productos Disponibles
+            </div>
+
+            {% for category, products in products_by_category.items() %}
+            <!-- Category Title -->
+            <div class="categoria-titulo">{{ category|capitalize }}</div>
+
+            <!-- Products Table for this Category -->
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 25%;">SKU</th>
+                        <th style="width: 55%;">Producto</th>
+                        <th class="precio-column" style="width: 20%;">Precio</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for product in products %}
+                    <tr>
+                        <td class="sku-column">{{ product.sku }}</td>
+                        <td>
+                            <div class="descripcion-producto">{{ product.name }}</div>
+                            <div class="detalles-producto">{{ product.description }}</div>
+                        </td>
+                        <td class="precio-column">$ {{ "{:,.2f}".format(product.price).replace(",", "@").replace(".",
+                            ",").replace("@", ".") }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% endfor %}
+
+            {% if not products_by_category %}
+            <div style="text-align: center; padding: 20px; color: #666;">
+                No se encontraron productos disponibles con los filtros actuales.
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="footer">
+            Para consultas contactar a Roberto Rocha - Mayorista Rocha
+        </div>
+    </div>
+</body>
+
+</html>

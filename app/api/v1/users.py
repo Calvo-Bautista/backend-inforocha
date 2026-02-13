@@ -56,6 +56,9 @@ async def get_users(
             (User.legajo.ilike(search_filter))
         )
     
+    # Only show active users
+    query = query.filter(User.is_active == True)
+    
     # Calculate total count before pagination
     total_count = query.count()
     response.headers["X-Total-Count"] = str(total_count)
@@ -216,7 +219,7 @@ async def delete_user(
     current_user: User = Depends(get_current_user)
 ):
     """
-    Delete a user.
+    Delete a user (soft delete).
     
     Args:
         user_id: User ID
@@ -247,7 +250,8 @@ async def delete_user(
             detail="User not found"
         )
     
-    db.delete(db_user)
+    # Soft delete: mark as inactive
+    db_user.is_active = False
     db.commit()
     
     return None
