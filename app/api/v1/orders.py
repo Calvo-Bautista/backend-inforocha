@@ -42,6 +42,8 @@ def generate_order_number(db: Session) -> str:
 
 @router.get("/stats", response_model=OrderStats)
 async def get_order_stats(
+    month: Optional[int] = Query(None, ge=1, le=12),
+    year: Optional[int] = Query(None, ge=2000),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -53,6 +55,12 @@ async def get_order_stats(
     # Filter by user role
     if current_user.role == UserRole.VENDEDOR:
         query = query.filter(Order.seller_id == current_user.id)
+
+    # Filter by date
+    if month:
+        query = query.filter(func.extract('month', Order.order_date) == month)
+    if year:
+        query = query.filter(func.extract('year', Order.order_date) == year)
         
     # Total count
     total_orders = query.count()
@@ -61,14 +69,19 @@ async def get_order_stats(
     total_revenue = query.with_entities(func.sum(Order.total)).scalar() or 0
     
     # Count by status
-    status_counts = db.query(
+    status_query = db.query(
         Order.status, func.count(Order.status)
     )
+
+    if month:
+        status_query = status_query.filter(func.extract('month', Order.order_date) == month)
+    if year:
+        status_query = status_query.filter(func.extract('year', Order.order_date) == year)
     
     if current_user.role == UserRole.VENDEDOR:
-        status_counts = status_counts.filter(Order.seller_id == current_user.id)
+        status_query = status_query.filter(Order.seller_id == current_user.id)
         
-    status_counts = status_counts.group_by(Order.status).all()
+    status_counts = status_query.group_by(Order.status).all()
     
     by_status = {
         "pendiente": 0,
@@ -97,6 +110,8 @@ async def get_orders(
     limit: int = Query(100, ge=1, le=1000),
     status_filter: Optional[OrderStatus] = None,
     search: Optional[str] = None,
+    month: Optional[int] = Query(None, ge=1, le=12),
+    year: Optional[int] = Query(None, ge=2000),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -125,6 +140,12 @@ async def get_orders(
     if current_user.role == UserRole.VENDEDOR:
         query = query.filter(Order.seller_id == current_user.id)
     
+    # Filter by date
+    if month:
+        query = query.filter(func.extract('month', Order.order_date) == month)
+    if year:
+        query = query.filter(func.extract('year', Order.order_date) == year)
+
     # Filter by status
     if status_filter:
         query = query.filter(Order.status == status_filter)
