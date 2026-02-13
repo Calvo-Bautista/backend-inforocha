@@ -1,196 +1,255 @@
-# InfoRocha Backend API
+# 🏢 InfoRocha — Sistema de Gestión Integral
 
-Backend API para el sistema de gestión de ventas de Informática Rocha.
+Sistema web de gestión empresarial para **Informática Rocha**, que permite administrar ventas, clientes, productos, pedidos, despachos, usuarios y configuración del sistema.
 
-## 🚀 Stack Tecnológico
+---
 
-- **Framework**: FastAPI 0.115.0
-- **Database**: MySQL 8.0+
-- **ORM**: SQLAlchemy 2.0.36
-- **Migrations**: Alembic 1.14.0
-- **Authentication**: JWT (python-jose)
-- **Password Hashing**: bcrypt (passlib)
-- **Python**: 3.11+
+## 📸 Stack Tecnológico
+
+### Backend
+| Tecnología | Versión | Uso |
+|---|---|---|
+| **Python** | 3.11+ | Lenguaje principal |
+| **FastAPI** | 0.115 | Framework web / API REST |
+| **SQLAlchemy** | 2.0 | ORM |
+| **Alembic** | 1.14 | Migraciones de base de datos |
+| **MySQL** | 8.0+ | Base de datos relacional |
+| **JWT** (python-jose) | — | Autenticación |
+| **Pydantic** | 2.10 | Validación de datos |
+| **xhtml2pdf** / **Jinja2** | — | Generación de PDFs (remitos, presupuestos) |
+
+### Frontend
+| Tecnología | Versión | Uso |
+|---|---|---|
+| **Next.js** | 16 | Framework React (App Router) |
+| **React** | 19 | UI Library |
+| **TypeScript** | 5 | Tipado estático |
+| **TailwindCSS** | 4 | Estilos |
+| **Radix UI** | — | Componentes accesibles (Dialog, Select, Tabs, etc.) |
+| **Recharts** | 2.15 | Gráficos y reportes |
+| **React Hook Form** + **Zod** | — | Formularios y validación |
+| **Lucide React** | — | Iconografía |
+| **Sonner** | — | Notificaciones toast |
+
+---
+
+## 🧩 Módulos Funcionales
+
+| Módulo | Descripción |
+|---|---|
+| **Dashboard** | Vista general con KPIs y métricas del negocio |
+| **Productos** | ABM de productos / insumos |
+| **Clientes** | ABM de clientes |
+| **Nueva Orden** | Creación de pedidos / órdenes de venta |
+| **Mis Pedidos** | Gestión y seguimiento de pedidos |
+| **Despachos** | Logística, despacho de órdenes y generación de remitos PDF |
+| **Usuarios** | ABM de usuarios con roles y permisos por módulo |
+| **Configuración** | Configuración general del sistema |
+
+### Roles de Usuario
+
+| Rol | Descripción |
+|---|---|
+| `owner` | Propietario — acceso total |
+| `admin` | Administrador — gestión completa |
+| `vendedor` | Vendedor — gestión de ventas |
+| `logistica` | Logística — gestión de despachos |
+
+---
 
 ## 📋 Requisitos Previos
 
-- Python 3.11 o superior
-- MySQL 8.0 o superior
-- pip (gestor de paquetes de Python)
+- **Python** 3.11+
+- **Node.js** 18+ y **npm**
+- **MySQL** 8.0+
+
+---
 
 ## 🔧 Instalación
 
 ### 1. Clonar el repositorio
 
 ```bash
+git clone <url-del-repositorio>
+cd ROCHA
+```
+
+### 2. Backend
+
+```bash
 cd backend-inforocha
-```
 
-### 2. Crear entorno virtual
-
-```bash
+# Crear y activar entorno virtual
 python -m venv venv
-```
+venv\Scripts\activate        # Windows
+# source venv/bin/activate   # Linux/Mac
 
-### 3. Activar entorno virtual
-
-**Windows:**
-```bash
-venv\Scripts\activate
-```
-
-**Linux/Mac:**
-```bash
-source venv/bin/activate
-```
-
-### 4. Instalar dependencias
-
-```bash
+# Instalar dependencias
 pip install -r requirements.txt
+
+# Configurar variables de entorno
+copy .env.example .env
+# Editar .env con los datos de tu base de datos
 ```
 
-### 5. Configurar variables de entorno
-
-Crear archivo `.env` en la raíz del proyecto:
+**Variables de entorno del backend** (`.env`):
 
 ```env
-# Database MySQL
+SECRET_KEY=tu-clave-secreta
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+CORS_ORIGINS=http://localhost:3000
+
+# Base de datos
 MYSQL_USER=root
-MYSQL_PASSWORD=your_password
+MYSQL_PASSWORD=tu-password
 MYSQL_HOST=localhost
 MYSQL_PORT=3306
-MYSQL_DB=inforocha_db
-
-# Security
-SECRET_KEY=your-secret-key-here
-ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=30
+MYSQL_DB=inforocha
 ```
 
-### 6. Crear base de datos
-
 ```bash
-mysql -u root -p < schema.sql
-```
-
-### 7. Ejecutar migraciones
-
-```bash
+# Ejecutar migraciones
 alembic upgrade head
-```
 
-### 8. Cargar datos de prueba
-
-```bash
-mysql -u root -p inforocha_db < seed_data.sql
-```
-
-## 🏃 Ejecutar el servidor
-
-```bash
+# Iniciar el servidor
 uvicorn app.main:app --reload
 ```
 
-El servidor estará disponible en:
+El backend estará disponible en:
 - **API**: http://localhost:8000
-- **Documentación Swagger**: http://localhost:8000/docs
-- **Documentación ReDoc**: http://localhost:8000/redoc
+- **Swagger UI**: http://localhost:8000/docs
+- **ReDoc**: http://localhost:8000/redoc
 
-## 📚 Documentación de la API
+### 3. Frontend
 
-La documentación interactiva está disponible en `/docs` una vez que el servidor esté corriendo.
+```bash
+cd frontmaqueta/informatica-rocha-system
 
-### Usuarios de Prueba
+# Instalar dependencias
+npm install
 
-| Email | Password | Role | Descripción |
-|-------|----------|------|-------------|
-| vendedor@rocha.com | 123456 | vendedor | Vendedor |
-| logistica@rocha.com | 123456 | logistica | Logística |
-| admin@rocha.com | 123456 | admin | Administrador |
-| owner@rocha.com | 123456 | owner | Propietario |
+# Configurar variables de entorno
+copy .env.example .env.local
+# Editar .env.local con la URL del backend
+```
+
+**Variables de entorno del frontend** (`.env.local`):
+
+```env
+NEXT_PUBLIC_API_URL=http://127.0.0.1:8000/api/v1
+```
+
+```bash
+# Iniciar el servidor de desarrollo
+npm run dev
+```
+
+El frontend estará disponible en http://localhost:3000.
+
+---
 
 ## 🗂️ Estructura del Proyecto
 
 ```
-backend-inforocha/
-├── app/
-│   ├── api/
-│   │   ├── deps.py              # Dependencias de autenticación
-│   │   └── v1/
-│   │       ├── auth.py          # Endpoints de autenticación
-│   │       ├── products.py      # Endpoints de productos
-│   │       ├── clients.py       # Endpoints de clientes
-│   │       ├── orders.py        # Endpoints de órdenes
-│   │       └── call_logs.py     # Endpoints de llamadas
-│   ├── core/
-│   │   ├── config.py            # Configuración
-│   │   └── security.py          # Seguridad (JWT, passwords)
-│   ├── models/                  # Modelos SQLAlchemy
-│   ├── schemas/                 # Schemas Pydantic
-│   ├── database.py              # Conexión a BD
-│   └── main.py                  # Aplicación principal
-├── alembic/                     # Migraciones
-├── schema.sql                   # Schema de BD
-├── seed_data.sql                # Datos de prueba
-├── requirements.txt             # Dependencias
-└── .env                         # Variables de entorno
+ROCHA/
+├── backend-inforocha/          # API REST (FastAPI)
+│   ├── app/
+│   │   ├── api/
+│   │   │   ├── deps.py         # Dependencias de autenticación
+│   │   │   └── v1/             # Endpoints v1
+│   │   │       ├── auth.py     # Login / JWT
+│   │   │       ├── products.py # Productos
+│   │   │       ├── clients.py  # Clientes
+│   │   │       ├── orders.py   # Órdenes / Pedidos
+│   │   │       ├── users.py    # Usuarios
+│   │   │       └── config.py   # Configuración del sistema
+│   │   ├── core/
+│   │   │   ├── config.py       # Settings (Pydantic)
+│   │   │   └── security.py     # JWT y hashing
+│   │   ├── models/             # Modelos SQLAlchemy
+│   │   ├── schemas/            # Schemas Pydantic
+│   │   ├── templates/          # Templates Jinja2 (PDFs)
+│   │   ├── database.py         # Conexión a BD
+│   │   └── main.py             # App principal
+│   ├── alembic/                # Migraciones de BD
+│   ├── requirements.txt
+│   └── .env.example
+│
+└── frontmaqueta/
+    └── informatica-rocha-system/   # Frontend (Next.js)
+        ├── app/
+        │   ├── page.tsx            # Login
+        │   └── dashboard/
+        │       ├── page.jsx        # Dashboard principal
+        │       ├── productos/      # Módulo Productos
+        │       ├── clientes/       # Módulo Clientes
+        │       ├── nueva-orden/    # Crear orden
+        │       ├── mis-pedidos/    # Gestión de pedidos
+        │       ├── despachos/      # Logística y despachos
+        │       └── usuarios/       # Gestión de usuarios
+        ├── components/
+        │   ├── ui/                 # Componentes Radix/shadcn
+        │   ├── sidebar.jsx         # Navegación lateral
+        │   └── login-form.jsx      # Formulario de login
+        ├── contexts/               # React Context (Auth, etc.)
+        ├── hooks/                  # Custom hooks
+        ├── lib/                    # Utilidades
+        ├── package.json
+        └── .env.example
 ```
+
+---
 
 ## 🔐 Autenticación
 
-La API usa JWT (JSON Web Tokens) para autenticación.
-
-### Obtener token:
+La API utiliza **JWT (JSON Web Tokens)**:
 
 ```bash
+# Obtener token
 POST /api/v1/auth/login
 Content-Type: application/x-www-form-urlencoded
-
 username=vendedor@rocha.com&password=123456
+
+# Usar token en requests
+Authorization: Bearer <token>
 ```
 
-### Usar token:
+---
 
-```bash
-GET /api/v1/products
-Authorization: Bearer <your-token-here>
-```
+## 📝 API Endpoints
 
-## 📝 Endpoints Principales
+| Recurso | Método | Endpoint | Descripción |
+|---|---|---|---|
+| **Auth** | `POST` | `/api/v1/auth/login` | Iniciar sesión |
+| | `GET` | `/api/v1/auth/me` | Usuario actual |
+| **Products** | `GET/POST` | `/api/v1/products` | Listar / Crear |
+| | `PUT/DELETE` | `/api/v1/products/{id}` | Editar / Eliminar |
+| **Clients** | `GET/POST` | `/api/v1/clients` | Listar / Crear |
+| | `PUT/DELETE` | `/api/v1/clients/{id}` | Editar / Eliminar |
+| **Orders** | `GET/POST` | `/api/v1/orders` | Listar / Crear |
+| | `PUT/DELETE` | `/api/v1/orders/{id}` | Editar / Eliminar |
+| **Users** | `GET/POST` | `/api/v1/users` | Listar / Crear |
+| | `PUT/DELETE` | `/api/v1/users/{id}` | Editar / Eliminar |
+| **Config** | `GET/PUT` | `/api/v1/config` | Leer / Actualizar config |
 
-### Autenticación
-- `POST /api/v1/auth/login` - Login
-- `GET /api/v1/auth/me` - Usuario actual
+> 📖 Documentación interactiva completa disponible en `/docs` (Swagger) una vez iniciado el backend.
 
-### Productos
-- `GET /api/v1/products` - Listar productos
-- `POST /api/v1/products` - Crear producto
-- `PUT /api/v1/products/{id}` - Actualizar producto
-- `DELETE /api/v1/products/{id}` - Eliminar producto
+---
 
-### Clientes
-- `GET /api/v1/clients` - Listar clientes
-- `POST /api/v1/clients` - Crear cliente
-- `PUT /api/v1/clients/{id}` - Actualizar cliente
-- `DELETE /api/v1/clients/{id}` - Eliminar cliente
+## 🚀 Deploy
 
-### Órdenes
-- `GET /api/v1/orders` - Listar órdenes
-- `POST /api/v1/orders` - Crear orden
-- `PUT /api/v1/orders/{id}` - Actualizar orden
-- `DELETE /api/v1/orders/{id}` - Eliminar orden
+| Componente | Plataforma Sugerida |
+|---|---|
+| **Backend** | [Render](https://render.com) |
+| **Frontend** | [Vercel](https://vercel.com) |
+| **Base de datos** | MySQL en Render, PlanetScale o Railway |
 
-### Llamadas
-- `GET /api/v1/call-logs` - Listar llamadas
-- `POST /api/v1/call-logs` - Crear llamada
-- `PUT /api/v1/call-logs/{id}` - Actualizar llamada
-- `DELETE /api/v1/call-logs/{id}` - Eliminar llamada
+Para producción, configurar las variables de entorno en cada plataforma:
+- **Backend**: `DATABASE_URL_OVERRIDE`, `SECRET_KEY`, `CORS_ORIGINS`
+- **Frontend**: `NEXT_PUBLIC_API_URL`
 
-## 🧪 Testing
-
-Ver la documentación interactiva en `/docs` para probar todos los endpoints.
+---
 
 ## 📄 Licencia
 
-Propiedad de Informática Rocha
+Propiedad de **Informática Rocha**. Todos los derechos reservados.

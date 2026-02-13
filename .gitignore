@@ -33,6 +33,7 @@ venv.bak/
 .env
 .env.local
 .env.*.local
+!.env.example
 
 # IDE
 .vscode/
@@ -96,3 +97,11 @@ $RECYCLE.BIN/
 *.bak
 *.tmp
 *.temp
+
+# Gemini AI
+.gemini/
+
+# Plan / docs that shouldn't be in prod
+plan_backend_fastapi.md
+DATABASE_SETUP.md
+test_db.py

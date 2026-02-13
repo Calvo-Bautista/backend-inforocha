@@ -216,6 +216,9 @@
                 <span class="box-title">Información del Cliente</span>
                 <span class="client-name">{{ order.client.name }}</span>
                 <div>📞 {{ order.client.phone or '-' }}</div>
+                {% if order.client.cuit %}
+                <div>🆔 CUIT: {{ order.client.cuit }}</div>
+                {% endif %}
                 <div>📍 {{ order.client.address or '-' }}</div>
             </td>
             <td class="info-cell">

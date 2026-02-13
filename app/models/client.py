@@ -29,6 +29,7 @@ class Client(Base):
     legajo = Column(String(50), unique=True, index=True)
     name = Column(String(255), nullable=False, index=True)
     phone = Column(String(50), nullable=False)
+    cuit = Column(String(20), nullable=True)
     address = Column(Text)
     industry = Column(String(255))
     maquinas = Column(Text)  # Deprecated: use printers relationship instead

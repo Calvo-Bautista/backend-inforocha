@@ -147,9 +147,8 @@
             <table class="header-table">
                 <tr>
                     <td class="header-left">
-                        <!-- Try to load logo, fallback text if not possible. Path needs to be handled by backend -->
-                        {% if logo_path %}
-                        <img src="{{ logo_path }}" alt="Logo" class="logo">
+                        {% if logo_base64 %}
+                        <img src="data:image/png;base64,{{ logo_base64 }}" alt="Logo" class="logo">
                         {% else %}
                         <h2>ROCHA</h2>
                         {% endif %}
@@ -167,7 +166,7 @@
         <!-- Vendedor -->
         <div class="vendedor-info">
             <h3>Vendedor</h3>
-            <div class="vendedor-nombre">Roberto Rocha - Mayorista Rocha</div>
+            <div class="vendedor-nombre">{{ vendedor_nombre }} - Mayorista Rocha</div>
         </div>
 
         <!-- Productos -->
@@ -213,7 +212,7 @@
         </div>
 
         <div class="footer">
-            Para consultas contactar a Roberto Rocha - Mayorista Rocha
+            Para consultas contactar a {{ vendedor_nombre }} - Mayorista Rocha
         </div>
     </div>
 </body>

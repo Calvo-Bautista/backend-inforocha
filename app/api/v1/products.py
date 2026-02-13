@@ -267,27 +267,22 @@ async def download_budget(
     template = env.get_template("presupuesto.html")
     
     # Prepare context
-    # Try to find logo path
-    base_dir = os.getcwd()
-    # Check common locations for logo
-    logo_path = None
-    possible_paths = [
-        # User requested specific logo: logofondonegro.png
-        r"c:\Users\bauti\OneDrive\Desktop\proyectos\ROCHA\frontmaqueta\informatica-rocha-system\public\logofondonegro.png",
-        # User requested specific logo: Nombre.png at project root
-        r"c:\Users\bauti\OneDrive\Desktop\proyectos\ROCHA\Nombre.png",
-        # New location: public folder in frontend
-        r"c:\Users\bauti\OneDrive\Desktop\proyectos\ROCHA\frontmaqueta\informatica-rocha-system\public\Nombre.png",
-        os.path.join(base_dir, "Nombre.png"),
-        os.path.join(os.path.dirname(base_dir), "Nombre.png"),
-        # Fallbacks just in case
-        os.path.join(base_dir, "app", "static", "Logo.png"), 
-    ]
+    # Use relative path to app/static for logo (works in any environment)
+    import base64
+    from PIL import Image
+    Image.MAX_IMAGE_PIXELS = None  # Disable decompression bomb check for logos
     
-    for path in possible_paths:
-        if os.path.exists(path):
-            logo_path = path
-            break
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    logo_path = os.path.join(base_dir, "static", "logofondonegro.png")
+    print(f"[PRESUPUESTO] Logo path: {logo_path}")
+    print(f"[PRESUPUESTO] File exists: {os.path.exists(logo_path)}")
+    logo_base64 = ""
+    if os.path.exists(logo_path):
+        with open(logo_path, "rb") as image_file:
+            logo_base64 = base64.b64encode(image_file.read()).decode('utf-8')
+        print(f"[PRESUPUESTO] Logo base64 length: {len(logo_base64)}")
+    else:
+        print(f"[PRESUPUESTO] WARNING: Logo file not found!")
             
     # Format date in Spanish manually to avoid locale issues
     now = datetime.now()
@@ -303,7 +298,8 @@ async def download_budget(
     context = {
         "date": date_str,
         "products_by_category": products_by_category,
-        "logo_path": logo_path
+        "logo_base64": logo_base64,
+        "vendedor_nombre": current_user.name
     }
     
     # Render HTML

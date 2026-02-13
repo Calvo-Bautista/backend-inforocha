@@ -88,7 +88,8 @@ async def get_order_stats(
         "pendiente": 0,
         "preparacion": 0,
         "enviado": 0,
-        "entregado": 0
+        "entregado": 0,
+        "cancelado": 0
     }
     
     for status_enum, count in status_counts:
@@ -240,31 +241,22 @@ async def generate_remito(
             detail="Access denied"
         )
 
-    # Get logo base64
-    logo_path = None
-    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    possible_paths = [
-        # User requested specific logo: logofondonegro.png
-        r"c:\Users\bauti\OneDrive\Desktop\proyectos\ROCHA\frontmaqueta\informatica-rocha-system\public\logofondonegro.png",
-        # User requested specific logo: Nombre.png at project root
-        r"c:\Users\bauti\OneDrive\Desktop\proyectos\ROCHA\Nombre.png",
-        # New location: public folder in frontend
-        r"c:\Users\bauti\OneDrive\Desktop\proyectos\ROCHA\frontmaqueta\informatica-rocha-system\public\Nombre.png",
-        os.path.join(base_dir, "Nombre.png"),
-        os.path.join(os.path.dirname(base_dir), "Nombre.png"),
-        # Fallbacks just in case
-        os.path.join(base_dir, "app", "static", "Logo.png"), 
-    ]
+    # Get logo base64 - use relative path to app/static (works in any environment)
+    from PIL import Image
+    Image.MAX_IMAGE_PIXELS = None  # Disable decompression bomb check for logos
     
-    for path in possible_paths:
-        if os.path.exists(path):
-            logo_path = path
-            break
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    logo_path = os.path.join(base_dir, "static", "logofondonegro.png")
+    print(f"[REMITO] Logo path: {logo_path}")
+    print(f"[REMITO] File exists: {os.path.exists(logo_path)}")
 
     logo_base64 = ""
-    if logo_path and os.path.exists(logo_path):
+    if os.path.exists(logo_path):
         with open(logo_path, "rb") as image_file:
             logo_base64 = base64.b64encode(image_file.read()).decode('utf-8')
+        print(f"[REMITO] Logo base64 length: {len(logo_base64)}")
+    else:
+        print(f"[REMITO] WARNING: Logo file not found!")
 
     # Setup Jinja2 environment
     template_dir = Path(__file__).parent.parent.parent / "templates"

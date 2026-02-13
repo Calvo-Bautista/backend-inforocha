@@ -8,6 +8,7 @@ class ClientBase(BaseModel):
     """Base client schema with common fields"""
     name: str
     phone: str
+    cuit: Optional[str] = None
     address: Optional[str] = None
     industry: Optional[str] = None
     maquinas: Optional[str] = None  # Deprecated: use printers instead
@@ -46,6 +47,7 @@ class ClientUpdate(BaseModel):
     """Schema for updating a client"""
     name: Optional[str] = None
     phone: Optional[str] = None
+    cuit: Optional[str] = None
     address: Optional[str] = None
     industry: Optional[str] = None
     maquinas: Optional[str] = None  # Deprecated

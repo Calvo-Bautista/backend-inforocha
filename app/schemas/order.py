@@ -12,6 +12,7 @@ class ClientBasic(BaseModel):
     id: int
     name: str
     phone: Optional[str] = None
+    cuit: Optional[str] = None
     address: Optional[str] = None
     
     class Config:

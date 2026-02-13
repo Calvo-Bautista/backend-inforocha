@@ -11,6 +11,7 @@ class OrderStatus(str, enum.Enum):
     PREPARACION = "preparacion"
     ENVIADO = "enviado"
     ENTREGADO = "entregado"
+    CANCELADO = "cancelado"
 
 
 class Order(Base):
@@ -32,7 +33,7 @@ class Order(Base):
     shipping_discount = Column(Boolean, default=False)
     total = Column(Numeric(12, 2), nullable=False)
     factura_a = Column(Boolean, default=False)
-    status = Column(Enum(OrderStatus), default=OrderStatus.PENDIENTE, index=True)
+    status = Column(Enum(OrderStatus, values_callable=lambda x: [e.value for e in x]), default=OrderStatus.PENDIENTE, index=True)
     notes = Column(Text)
     repair_description = Column(Text, nullable=True)
     repair_amount = Column(Numeric(10, 2), default=0, nullable=False)
