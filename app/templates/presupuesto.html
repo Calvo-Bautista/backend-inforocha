@@ -9,14 +9,11 @@
         @page {
             size: A4;
             margin: 2cm;
+        }
 
-            @top-center {
-                content: "Presupuesto - Mayorista Rocha";
-            }
-
-            @bottom-center {
-                content: "Página " counter(page);
-            }
+        .logo {
+            width: 180px;
+            height: auto;
         }
 
         * {
@@ -34,71 +31,31 @@
         }
 
         .presupuesto-container {
-            border: 1px solid #333;
-            /* Standard border might not render perfectly in all PDF engines, but keeping */
-            padding: 20px;
+            /* Minimalist - no border */
+            padding: 10px;
         }
 
         .header {
-            /* display: flex; Flexbox support in xhtml2pdf is limited/non-existent. Use tables for layout. */
             width: 100%;
             margin-bottom: 30px;
-            border-bottom: 2px solid #333;
+            border-bottom: 2px solid #000;
             padding-bottom: 15px;
         }
 
-        .header-table {
-            width: 100%;
-        }
-
-        .header-left {
-            width: 50%;
-            vertical-align: top;
-        }
-
-        .header-right {
-            width: 50%;
-            text-align: right;
-            vertical-align: top;
-        }
-
-        .logo {
-            width: 80px;
-            height: 80px;
-        }
-
-        .documento-info {
-            text-align: right;
-        }
-
-        .documento-info h1 {
-            font-size: 24px;
-            margin-bottom: 5px;
-            margin-top: 0;
-        }
-
-        .fecha {
-            font-size: 14px;
-            color: #666;
-            margin-top: 5px;
-        }
+        /* ... existing header styles ... */
 
         .vendedor-info {
             margin-bottom: 25px;
-            padding: 15px;
-            border: 1px solid #ddd;
+            /* Removed border and padding for simpler look */
         }
 
         .vendedor-info h3 {
             font-size: 14px;
             color: #666;
-            margin-bottom: 8px;
+            margin-bottom: 5px;
             margin-top: 0;
-        }
-
-        .vendedor-nombre {
-            font-size: 16px;
-            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         .productos-section {
@@ -106,41 +63,46 @@
         }
 
         .productos-header {
-            background-color: #f5f5f5;
-            padding: 10px;
-            margin-bottom: 15px;
-            font-size: 16px;
+            /* Removed background color */
+            padding: 10px 0;
+            margin-bottom: 10px;
+            font-size: 18px;
             font-weight: bold;
+            border-bottom: 2px solid #000;
         }
 
         .categoria-titulo {
-            font-size: 15px;
+            font-size: 16px;
             font-weight: bold;
-            margin-top: 20px;
+            margin-top: 25px;
             margin-bottom: 10px;
-            color: #333;
-            padding: 8px 0;
-            border-bottom: 1px solid #ddd;
+            color: #000;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #000;
+            text-transform: uppercase;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            /* Often supported */
             margin-bottom: 20px;
         }
 
         th {
-            background-color: #f5f5f5;
-            padding: 10px;
+            /* Removed background color */
+            padding: 5px 0;
             text-align: left;
-            font-size: 14px;
-            border-bottom: 1px solid #ddd;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+            border-bottom: 1px solid #000;
+            color: #666;
         }
 
         td {
-            padding: 10px;
+            padding: 8px 0;
             border-bottom: 1px solid #eee;
+            /* Simple dividing line */
             font-size: 14px;
             vertical-align: top;
         }

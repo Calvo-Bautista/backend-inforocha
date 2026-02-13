@@ -175,6 +175,30 @@ async def update_product(
     return db_product
 
 
+@router.delete("/{product_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_product(
+    product_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.OWNER]))
+):
+    """
+    Delete a product (admin/owner only).
+    
+    Args:
+        product_id: Product ID
+        db: Database session
+        current_user: Current authenticated user
+        
+    Raises:
+        HTTPException: If product not found
+    """
+    db_product = db.query(Product).filter(Product.id == product_id).first()
+    if not db_product:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Product not found"
+        )
+
     db.delete(db_product)
     db.commit()
     
@@ -248,13 +272,16 @@ async def download_budget(
     # Check common locations for logo
     logo_path = None
     possible_paths = [
-        os.path.join(base_dir, "app", "static", "Logo.png"), # If we had it here
-        os.path.join(base_dir, "Logo.png"),
-        # Absolute path fallback to what we saw in file system if needed, but better to use relative if possible or copy it.
-        # For now let's try to assume it might be in a static folder or just pass None and handle in template.
-        # We saw c:\Users\bauti\OneDrive\Desktop\proyectos\ROCHA\frontmaqueta\informatica-rocha-system\public\Logo.png
-        # We can try to point to that if we are running locally
-        r"c:\Users\bauti\OneDrive\Desktop\proyectos\ROCHA\frontmaqueta\informatica-rocha-system\public\Logo.png"
+        # User requested specific logo: logofondonegro.png
+        r"c:\Users\bauti\OneDrive\Desktop\proyectos\ROCHA\frontmaqueta\informatica-rocha-system\public\logofondonegro.png",
+        # User requested specific logo: Nombre.png at project root
+        r"c:\Users\bauti\OneDrive\Desktop\proyectos\ROCHA\Nombre.png",
+        # New location: public folder in frontend
+        r"c:\Users\bauti\OneDrive\Desktop\proyectos\ROCHA\frontmaqueta\informatica-rocha-system\public\Nombre.png",
+        os.path.join(base_dir, "Nombre.png"),
+        os.path.join(os.path.dirname(base_dir), "Nombre.png"),
+        # Fallbacks just in case
+        os.path.join(base_dir, "app", "static", "Logo.png"), 
     ]
     
     for path in possible_paths:
@@ -262,8 +289,19 @@ async def download_budget(
             logo_path = path
             break
             
+    # Format date in Spanish manually to avoid locale issues
+    now = datetime.now()
+    days = {
+        0: "Lunes", 1: "Martes", 2: "Miércoles", 3: "Jueves", 4: "Viernes", 5: "Sábado", 6: "Domingo"
+    }
+    months = {
+        1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril", 5: "Mayo", 6: "Junio",
+        7: "Julio", 8: "Agosto", 9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"
+    }
+    date_str = f"{days[now.weekday()]}, {now.day} de {months[now.month]} de {now.year}"
+
     context = {
-        "date": datetime.now().strftime("%A, %d de %B de %Y"),
+        "date": date_str,
         "products_by_category": products_by_category,
         "logo_path": logo_path
     }

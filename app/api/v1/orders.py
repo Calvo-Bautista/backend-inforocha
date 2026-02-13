@@ -16,6 +16,7 @@ from jinja2 import Environment, FileSystemLoader
 from xhtml2pdf import pisa
 from fastapi.responses import Response, StreamingResponse
 import io
+import os
 
 def format_currency(value):
     if value is None:
@@ -240,9 +241,28 @@ async def generate_remito(
         )
 
     # Get logo base64
-    logo_path = Path("C:/Users/bauti/OneDrive/Desktop/proyectos/ROCHA/Nombre.png")
+    logo_path = None
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    possible_paths = [
+        # User requested specific logo: logofondonegro.png
+        r"c:\Users\bauti\OneDrive\Desktop\proyectos\ROCHA\frontmaqueta\informatica-rocha-system\public\logofondonegro.png",
+        # User requested specific logo: Nombre.png at project root
+        r"c:\Users\bauti\OneDrive\Desktop\proyectos\ROCHA\Nombre.png",
+        # New location: public folder in frontend
+        r"c:\Users\bauti\OneDrive\Desktop\proyectos\ROCHA\frontmaqueta\informatica-rocha-system\public\Nombre.png",
+        os.path.join(base_dir, "Nombre.png"),
+        os.path.join(os.path.dirname(base_dir), "Nombre.png"),
+        # Fallbacks just in case
+        os.path.join(base_dir, "app", "static", "Logo.png"), 
+    ]
+    
+    for path in possible_paths:
+        if os.path.exists(path):
+            logo_path = path
+            break
+
     logo_base64 = ""
-    if logo_path.exists():
+    if logo_path and os.path.exists(logo_path):
         with open(logo_path, "rb") as image_file:
             logo_base64 = base64.b64encode(image_file.read()).decode('utf-8')
 
