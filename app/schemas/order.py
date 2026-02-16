@@ -3,7 +3,7 @@ from typing import Optional, List
 from typing_extensions import Literal
 from datetime import date, datetime
 from decimal import Decimal
-from app.models.order import OrderStatus
+from app.models.order import OrderStatus, InvoiceType
 
 
 # Nested schemas for related data
@@ -72,7 +72,7 @@ class OrderBase(BaseModel):
     shipping: Decimal = Field(default=0, ge=0, decimal_places=2)
     shipping_discount: bool = False
     total: Decimal = Field(..., ge=0, decimal_places=2)
-    factura_a: bool = False
+    invoice_type: Optional[InvoiceType] = None
     status: OrderStatus = OrderStatus.PENDIENTE
     notes: Optional[str] = None
     repair_description: Optional[str] = None

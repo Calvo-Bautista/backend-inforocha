@@ -14,6 +14,13 @@ class OrderStatus(str, enum.Enum):
     CANCELADO = "cancelado"
 
 
+class InvoiceType(str, enum.Enum):
+    """Invoice type enumeration"""
+    A = "A"
+    B = "B"
+    C = "C"
+
+
 class Order(Base):
     """
     Order model for purchase orders.
@@ -32,7 +39,7 @@ class Order(Base):
     shipping = Column(Numeric(10, 2), default=0)
     shipping_discount = Column(Boolean, default=False)
     total = Column(Numeric(12, 2), nullable=False)
-    factura_a = Column(Boolean, default=False)
+    invoice_type = Column(Enum(InvoiceType, values_callable=lambda x: [e.value for e in x]), nullable=True)
     status = Column(Enum(OrderStatus, values_callable=lambda x: [e.value for e in x]), default=OrderStatus.PENDIENTE, index=True)
     notes = Column(Text)
     repair_description = Column(Text, nullable=True)
