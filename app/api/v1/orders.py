@@ -138,12 +138,23 @@ async def get_orders(
     
     query = db.query(Order).options(
         joinedload(Order.client),
+        joinedload(Order.seller),
         joinedload(Order.items).joinedload(OrderItem.product)
     )
     
-    # Vendedores only see their own orders
+    # Vendedores only see their own orders or orders of users they are substituting for
     if current_user.role == UserRole.VENDEDOR:
-        query = query.filter(Order.seller_id == current_user.id)
+        # Get IDs of users where current_user is the substitute AND the user is on leave
+        substituting_for = db.query(User.id).filter(
+            User.substitute_id == current_user.id,
+            User.is_on_leave == True
+        ).all()
+        substitute_ids = [s_id for (s_id,) in substituting_for]
+        
+        query = query.filter(
+            (Order.seller_id == current_user.id) | 
+            (Order.seller_id.in_(substitute_ids))
+        )
     
     # Filter by date
     if month:
@@ -196,19 +207,36 @@ async def get_order(
     Raises:
         HTTPException: If order not found or access denied
     """
-    order = db.query(Order).filter(Order.id == order_id).first()
+    from sqlalchemy.orm import joinedload
+    order = db.query(Order).options(
+        joinedload(Order.client),
+        joinedload(Order.seller),
+        joinedload(Order.items).joinedload(OrderItem.product)
+    ).filter(Order.id == order_id).first()
+    
     if not order:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Order not found"
         )
     
-    # Vendedores can only see their own orders
-    if current_user.role == UserRole.VENDEDOR and order.seller_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied"
-        )
+    # Vendedores can only see their own orders or orders of users they are substituting for
+    if current_user.role == UserRole.VENDEDOR:
+        # Check if user is the owner
+        is_owner = order.seller_id == current_user.id
+        
+        # Check if user is a valid substitute for the owner
+        is_substitute = False
+        if not is_owner:
+            owner = db.query(User).filter(User.id == order.seller_id).first()
+            if owner and owner.is_on_leave and owner.substitute_id == current_user.id:
+                is_substitute = True
+        
+        if not is_owner and not is_substitute:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied"
+            )
     
     return order
 
@@ -237,12 +265,23 @@ async def generate_remito(
             detail="Order not found"
         )
     
-    # Vendedores can only see their own orders
-    if current_user.role == UserRole.VENDEDOR and order.seller_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied"
-        )
+    # Vendedores can only see their own orders or orders of users they are substituting for
+    if current_user.role == UserRole.VENDEDOR:
+        # Check if user is the owner
+        is_owner = order.seller_id == current_user.id
+        
+        # Check if user is a valid substitute for the owner
+        is_substitute = False
+        if not is_owner:
+            owner = db.query(User).filter(User.id == order.seller_id).first()
+            if owner and owner.is_on_leave and owner.substitute_id == current_user.id:
+                is_substitute = True
+        
+        if not is_owner and not is_substitute:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied"
+            )
 
     # Get logo base64 - use relative path to app/static (works in any environment)
     from PIL import Image

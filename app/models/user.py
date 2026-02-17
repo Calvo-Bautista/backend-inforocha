@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Enum
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Enum, ForeignKey
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.database import Base
@@ -27,10 +27,13 @@ class User(Base):
     role = Column(Enum(UserRole), nullable=False, index=True)
     legajo = Column(String(50), unique=True, nullable=False, index=True)
     is_active = Column(Boolean, default=True)
+    is_on_leave = Column(Boolean, default=False)
+    substitute_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     clients = relationship("Client", back_populates="user")
+    substitute = relationship("User", remote_side=[id], backref="substitutes")
 
     def __repr__(self):
         return f"<User(id={self.id}, email='{self.email}', role='{self.role}')>"

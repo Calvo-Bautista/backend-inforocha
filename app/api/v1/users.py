@@ -22,17 +22,6 @@ async def get_users(
 ):
     """
     Get list of users with optional filtering.
-    
-    Args:
-        skip: Number of records to skip
-        limit: Maximum number of records to return
-        role_filter: Filter by user role
-        search: Search in name, email, or legajo
-        db: Database session
-        current_user: Current authenticated user
-        
-    Returns:
-        List of users
     """
     # Only admin and owner can view all users
     if current_user.role not in ["admin", "owner"]:
@@ -41,7 +30,8 @@ async def get_users(
             detail="Not enough permissions"
         )
     
-    query = db.query(User)
+    from sqlalchemy.orm import joinedload
+    query = db.query(User).options(joinedload(User.substitute))
     
     # Filter by role
     if role_filter:
@@ -75,17 +65,6 @@ async def get_user(
 ):
     """
     Get a specific user by ID.
-    
-    Args:
-        user_id: User ID
-        db: Database session
-        current_user: Current authenticated user
-        
-    Returns:
-        User data
-        
-    Raises:
-        HTTPException: If user not found or no permissions
     """
     # Only admin/owner can view other users, or user can view themselves
     if current_user.role not in ["admin", "owner"] and current_user.id != user_id:
@@ -94,7 +73,8 @@ async def get_user(
             detail="Not enough permissions"
         )
     
-    user = db.query(User).filter(User.id == user_id).first()
+    from sqlalchemy.orm import joinedload
+    user = db.query(User).options(joinedload(User.substitute)).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -301,3 +281,135 @@ async def change_user_password(
     db.commit()
     
     return None
+
+
+@router.patch("/{user_id}/leave", response_model=UserResponse)
+async def set_user_leave(
+    user_id: int,
+    substitute_id: int = Query(..., description="ID of the substitute user"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Mark a user as on leave and assign a substitute.
+    
+    Args:
+        user_id: ID of the user going on leave
+        substitute_id: ID of the substitute user
+        db: Database session
+        current_user: Current authenticated user
+        
+    Returns:
+        Updated user
+        
+    Raises:
+        HTTPException: If user/substitute not found, roles don't match, or no permissions
+    """
+    # Only admin/owner can set leave for others (or maybe the user themselves?)
+    # Instructions say: "El rol Owner puede marcar a un empleado..."
+    if current_user.role not in ["admin", "owner"] and current_user.id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not enough permissions"
+        )
+    
+    # Get user going on leave
+    db_user = db.query(User).filter(User.id == user_id).first()
+    if not db_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+        
+    # Get substitute user
+    substitute = db.query(User).filter(User.id == substitute_id).first()
+    if not substitute:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Substitute user not found"
+        )
+        
+    # Check if substitute is active
+    if not substitute.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Substitute user is not active"
+        )
+
+    # Check if substitute is already on leave (cannot substitute if on leave)
+    if substitute.is_on_leave:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"El suplente {substitute.name} está de vacaciones. No puede ser asignado."
+        )
+
+    # STRICT RULE: Substitute must have the exact same role
+    if db_user.role != substitute.role:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Substitute must have the same role. User: {db_user.role}, Substitute: {substitute.role}"
+        )
+        
+    # Prevent self-substitution (makes no sense)
+    if db_user.id == substitute.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot substitute yourself"
+        )
+
+    # Check if user is currently a substitute for someone else who is on leave
+    # If they are covering for someone, they cannot go on leave themselves until that coverage ends
+    active_substitutions = db.query(User).filter(
+        User.substitute_id == user_id,
+        User.is_on_leave == True
+    ).first()
+    
+    if active_substitutions:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"No puede tomar vacaciones mientras sea suplente de {active_substitutions.name}. Debe finalizar esa suplencia primero."
+        )
+    
+    # Apply changes
+    db_user.is_on_leave = True
+    db_user.substitute_id = substitute.id
+    db.commit()
+    db.refresh(db_user)
+    
+    return db_user
+
+
+@router.patch("/{user_id}/return", response_model=UserResponse)
+async def return_from_leave(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Mark a user as returned from leave.
+    
+    Args:
+        user_id: User ID
+        
+    Returns:
+        Updated user
+    """
+    if current_user.role not in ["admin", "owner"] and current_user.id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not enough permissions"
+        )
+        
+    db_user = db.query(User).filter(User.id == user_id).first()
+    if not db_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+        
+    db_user.is_on_leave = False
+    db_user.substitute_id = None
+    db.commit()
+    db.refresh(db_user)
+    
+    return db_user
