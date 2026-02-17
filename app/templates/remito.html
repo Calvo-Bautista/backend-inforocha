@@ -215,11 +215,11 @@
             <td class="info-cell">
                 <span class="box-title">Información del Cliente</span>
                 <span class="client-name">{{ order.client.name }}</span>
-                <div>📞 {{ order.client.phone or '-' }}</div>
+                <div>Tel: {{ order.client.phone or '-' }}</div>
                 {% if order.client.cuit %}
-                <div>🆔 CUIT: {{ order.client.cuit }}</div>
+                <div>CUIT: {{ order.client.cuit }}</div>
                 {% endif %}
-                <div>📍 {{ order.client.address or '-' }}</div>
+                <div>Dirección: {{ order.client.address or '-' }}</div>
             </td>
             <td class="info-cell">
                 <span class="box-title">Detalles del Pedido</span>
@@ -239,7 +239,7 @@
 
     <!-- Products -->
     <div class="products-title">
-        📦 Productos a Preparar ({{ order.items|sum(attribute='quantity') }} unidades)
+        Productos a Preparar ({{ order.items|sum(attribute='quantity') }} unidades)
     </div>
 
     <table class="products-table">
@@ -275,7 +275,7 @@
                 {% if order.repair_description %}
                 <div class="additional-box"
                     style="background-color: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af;">
-                    <span class="box-label">🔧 Reparación:</span>
+                    <span class="box-label">Reparación:</span>
                     {{ order.repair_description }}
                 </div>
                 {% endif %}
@@ -283,7 +283,7 @@
                 {% if order.payment_method %}
                 <div class="additional-box"
                     style="background-color: #f3f4f6; border: 1px solid #e5e7eb; color: #4b5563;">
-                    <span class="box-label">💳 Método de Pago:</span>
+                    <span class="box-label">Método de Pago:</span>
                     {{ order.payment_method|capitalize }}
                 </div>
                 {% endif %}
