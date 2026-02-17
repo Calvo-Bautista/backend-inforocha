@@ -9,9 +9,9 @@ class ProductBase(BaseModel):
     """Base product schema with common fields"""
     articulo: str
     description: str
-    price: Decimal = Field(..., gt=0, decimal_places=2)
+    price: Decimal = Field(..., gt=0, decimal_places=4)
     stock: int = Field(default=0, ge=0)
-    category: ProductCategory
+    category: str
     is_active: bool = True
 
 
@@ -26,7 +26,7 @@ class ProductUpdate(BaseModel):
     description: Optional[str] = None
     price: Optional[Decimal] = Field(None, ge=0, decimal_places=4)
     stock: Optional[int] = Field(None, ge=0)
-    category: Optional[ProductCategory] = None
+    category: Optional[str] = None
     is_active: Optional[bool] = None
 
 

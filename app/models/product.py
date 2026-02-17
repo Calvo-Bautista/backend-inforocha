@@ -25,7 +25,7 @@ class Product(Base):
     description = Column(Text, nullable=False)
     price = Column(Numeric(10, 2), nullable=False)
     stock = Column(Integer, nullable=False, default=0, index=True)
-    category = Column(Enum(ProductCategory), nullable=False, index=True)
+    category = Column(String(50), nullable=False, index=True)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

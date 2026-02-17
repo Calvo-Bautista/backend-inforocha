@@ -1,5 +1,7 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Response, UploadFile, File
+import openpyxl
+import io
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.product import Product
@@ -319,6 +321,7 @@ async def download_budget(
     pdf_buffer.seek(0)
     
     # Return response
+    # Return response
     return Response(
         content=pdf_buffer.getvalue(),
         media_type="application/pdf",
@@ -326,4 +329,106 @@ async def download_budget(
             "Content-Disposition": f"attachment; filename=presupuesto_{datetime.now().strftime('%Y%m%d')}.pdf"
         }
     )
+
+
+@router.post("/import", status_code=status.HTTP_200_OK)
+async def import_products(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.OWNER]))
+):
+    """
+    Import products from Excel file.
+    Owner only.
+    """
+    if not file.filename.endswith('.xlsx'):
+        raise HTTPException(status_code=400, detail="Invalid file format. Please upload .xlsx file")
+
+    try:
+        contents = await file.read()
+        workbook = openpyxl.load_workbook(io.BytesIO(contents))
+        
+        products_created = 0
+        products_updated = 0
+        
+        # Flexible sheet matching mapping
+        sheet_mapping = {
+            "toner": "toner", "toners": "toner",
+            "tinta": "cartucho", "tintas": "cartucho", "cartucho": "cartucho", "cartuchos": "cartucho",
+            "drum": "drum", "drums": "drum" 
+        }
+
+        for sheet_name in workbook.sheetnames:
+            normalized_name = sheet_name.lower().strip()
+            product_type = sheet_mapping.get(normalized_name)
+            
+            if not product_type:
+                # Try partial matching if exact match fails
+                # e.g. "Toner HP" -> "toner"
+                if "toner" in normalized_name:
+                    product_type = "toner"
+                elif "tinta" in normalized_name or "cartucho" in normalized_name:
+                    product_type = "cartucho"
+                elif "drum" in normalized_name:
+                    product_type = "drum"
+                else:
+                     print(f"Skipping sheet: {sheet_name} (No matching type found)")
+                     continue
+
+                
+            sheet = workbook[sheet_name]
+            
+            # Iterate rows, skipping header (row 1)
+            for row in sheet.iter_rows(min_row=2, values_only=True):
+                # Ensure row has at least 3 columns (A, B, C)
+                if not row or len(row) < 3 or not row[0]: 
+                    continue
+                    
+                articulo = str(row[0]).strip()
+                description = str(row[1]).strip() if row[1] else ""
+                
+                try:
+                    price_val = row[2]
+                    if isinstance(price_val, str):
+                        # Handle basic string formatting if present (e.g. "$ 100", "1.000,00")
+                        # Assuming clean float from Excel usually, but basic cleanup helps
+                        price_val = price_val.replace('$', '').replace('.', '').replace(',', '.').strip()
+                    price = float(price_val) if price_val is not None else 0.0
+                except (ValueError, AttributeError):
+                    price = 0.0
+                    
+                # Upsert logic
+                existing_product = db.query(Product).filter(Product.articulo == articulo).first()
+                
+                if existing_product:
+                    # Update
+                    existing_product.description = description
+                    existing_product.price = price
+                    existing_product.category = product_type
+                    # NOT updating stock for existing products to preserve inventory
+                    products_updated += 1
+                else:
+                    # Create
+                    new_product = Product(
+                        articulo=articulo,
+                        description=description,
+                        price=price,
+                        category=product_type,
+                        stock=0, # Initial stock 0
+                        is_active=True
+                    )
+                    db.add(new_product)
+                    products_created += 1
+                    
+        db.commit()
+        
+        return {
+            "message": "Import completed successfully",
+            "created": products_created,
+            "updated": products_updated
+        }
+        
+    except Exception as e:
+        print(f"Error importing products: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error processing file: {str(e)}")
 
