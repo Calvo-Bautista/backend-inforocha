@@ -16,7 +16,9 @@ from jinja2 import Environment, FileSystemLoader
 from xhtml2pdf import pisa
 from fastapi.responses import Response, StreamingResponse
 import io
+import io
 import os
+from app.core.websocket import manager
 
 def format_currency(value):
     if value is None:
@@ -319,6 +321,7 @@ async def create_order(
     db.flush()  # Get order ID without committing
     
     # Create order items and update stock
+    stock_updates = []
     for item in order.items:
         # Get product to update stock
         product = db.query(Product).filter(Product.id == item.product_id).first()
@@ -340,6 +343,8 @@ async def create_order(
         # Deduct stock
         product.stock -= item.quantity
         db.add(product)
+        # Store update for broadcast
+        stock_updates.append({"id": product.id, "stock": product.stock})
         
         db_item = OrderItem(
             **item.model_dump(),
@@ -349,6 +354,14 @@ async def create_order(
     
     db.commit()
     db.refresh(db_order)
+
+    # Broadcast stock updates
+    for update in stock_updates:
+        await manager.broadcast({
+            "type": "stock_update",
+            "product_id": update["id"],
+            "new_stock": update["stock"]
+        })
     
     return db_order
 
