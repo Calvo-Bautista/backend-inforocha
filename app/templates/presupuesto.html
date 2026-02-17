@@ -183,18 +183,17 @@
             <table>
                 <thead>
                     <tr>
-                        <th style="width: 25%;">SKU</th>
-                        <th style="width: 55%;">Producto</th>
+                        <th style="width: 25%;">ARTICULO</th>
+                        <th style="width: 55%;">DESCRIPCION</th>
                         <th class="precio-column" style="width: 20%;">Precio</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for product in products %}
                     <tr>
-                        <td class="sku-column">{{ product.sku }}</td>
+                        <td class="sku-column">{{ product.articulo }}</td>
                         <td>
-                            <div class="descripcion-producto">{{ product.name }}</div>
-                            <div class="detalles-producto">{{ product.description }}</div>
+                            <div class="descripcion-producto">{{ product.description }}</div>
                         </td>
                         <td class="precio-column">$ {{ "{:,.2f}".format(product.price).replace(",", "@").replace(".",
                             ",").replace("@", ".") }}</td>

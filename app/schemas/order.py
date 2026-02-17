@@ -32,8 +32,8 @@ class UserBasic(BaseModel):
 class ProductBasic(BaseModel):
     """Basic product info for order item response"""
     id: int
-    name: str
-    sku: str
+    description: str
+    articulo: str
     
     class Config:
         from_attributes = True

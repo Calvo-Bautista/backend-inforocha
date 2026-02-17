@@ -21,9 +21,8 @@ class Product(Base):
     __tablename__ = "products"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    sku = Column(String(50), unique=True, nullable=False, index=True)
-    name = Column(String(255), nullable=False, index=True)
-    description = Column(Text)
+    articulo = Column(String(50), unique=True, nullable=False, index=True)
+    description = Column(Text, nullable=False)
     price = Column(Numeric(10, 2), nullable=False)
     stock = Column(Integer, nullable=False, default=0, index=True)
     category = Column(Enum(ProductCategory), nullable=False, index=True)
@@ -35,4 +34,4 @@ class Product(Base):
     order_items = relationship("OrderItem", back_populates="product")
 
     def __repr__(self):
-        return f"<Product(id={self.id}, sku='{self.sku}', name='{self.name}')>"
+        return f"<Product(id={self.id}, articulo='{self.articulo}', description='{self.description[:20]}...')>"

@@ -10,20 +10,21 @@ from app.models.client import Client
 from app.models.user import User, UserRole
 from app.schemas.order import OrderCreate, OrderUpdate, OrderResponse, OrderStats
 from app.api.deps import get_current_user
+from app.core.websocket import manager
 import base64
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
 from xhtml2pdf import pisa
-from fastapi.responses import Response, StreamingResponse
-import io
-import io
 import os
-from app.core.websocket import manager
-
+import io
+from fastapi.responses import StreamingResponse
 def format_currency(value):
     if value is None:
         return "$ 0"
-    return f"$ {value:,.0f}".replace(",", ".")
+    # Format with 4 decimal places, use dot for thousands and comma for decimals (European style inverted for Argentina if needed, but keeping consistency)
+    # The user requested "8688,1825", which implies comma for decimals.
+    # Python's default float formatting with comma as separator:
+    return f"$ {value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 router = APIRouter()
 
@@ -337,7 +338,7 @@ async def create_order(
             db.rollback()
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Insufficient stock for product '{product.name}'. Available: {product.stock}, Requested: {item.quantity}"
+                detail=f"Insufficient stock for product '{product.description}'. Available: {product.stock}, Requested: {item.quantity}"
             )
             
         # Deduct stock

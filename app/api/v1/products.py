@@ -40,13 +40,12 @@ async def get_products(
     if category:
         query = query.filter(Product.category == category)
     
-    # Search in name, description, or SKU
+    # Search in description or Articulo
     if search:
         search_filter = f"%{search}%"
         query = query.filter(
-            (Product.name.ilike(search_filter)) |
             (Product.description.ilike(search_filter)) |
-            (Product.sku.ilike(search_filter))
+            (Product.articulo.ilike(search_filter))
         )
     
     # Only show active products by default
@@ -107,14 +106,14 @@ async def create_product(
         Created product
         
     Raises:
-        HTTPException: If SKU already exists
+        HTTPException: If Articulo already exists
     """
-    # Check if SKU already exists
-    existing_product = db.query(Product).filter(Product.sku == product.sku).first()
+    # Check if Articulo already exists
+    existing_product = db.query(Product).filter(Product.articulo == product.articulo).first()
     if existing_product:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Product with this SKU already exists"
+            detail="Product with this Articulo already exists"
         )
     
     # Create new product
@@ -146,7 +145,7 @@ async def update_product(
         Updated product
         
     Raises:
-        HTTPException: If product not found or SKU already exists
+        HTTPException: If product not found or Articulo already exists
     """
     db_product = db.query(Product).filter(Product.id == product_id).first()
     if not db_product:
@@ -155,13 +154,13 @@ async def update_product(
             detail="Product not found"
         )
     
-    # Check if new SKU already exists (if SKU is being updated)
-    if product.sku and product.sku != db_product.sku:
-        existing_product = db.query(Product).filter(Product.sku == product.sku).first()
+    # Check if new Articulo already exists (if Articulo is being updated)
+    if product.articulo and product.articulo != db_product.articulo:
+        existing_product = db.query(Product).filter(Product.articulo == product.articulo).first()
         if existing_product:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Product with this SKU already exists"
+                detail="Product with this Articulo already exists"
             )
     
     # Update product fields
@@ -218,7 +217,7 @@ async def download_budget(
     
     Args:
         category: Filter by product category
-        search: Search in name, description, or SKU
+        search: Search in description, or Articulo
         db: Database session
         current_user: Current authenticated user
         
@@ -238,20 +237,19 @@ async def download_budget(
     if category and category != 'all':
         query = query.filter(Product.category == category)
     
-    # Search in name, description, or SKU
+    # Search in description or Articulo
     if search:
         search_filter = f"%{search}%"
         query = query.filter(
-            (Product.name.ilike(search_filter)) |
             (Product.description.ilike(search_filter)) |
-            (Product.sku.ilike(search_filter))
+            (Product.articulo.ilike(search_filter))
         )
     
     # Only show active products
     query = query.filter(Product.is_active == True)
     
-    # Order by category and name
-    products = query.order_by(Product.category, Product.name).all()
+    # Order by category and description
+    products = query.order_by(Product.category, Product.description).all()
     
     # Group products by category
     products_by_category = {}

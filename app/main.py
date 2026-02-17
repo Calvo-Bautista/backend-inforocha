@@ -13,6 +13,15 @@ app = FastAPI(
 )
 
 # Configure CORS
+origins = [
+    "http://localhost",
+    "http://localhost:3000",
+    "http://127.0.0.1",
+    "http://127.0.0.1:3000",
+    "http://26.190.79.61:3000", # Network IP seen in logs
+    "*", # Allow all temporarily for development if needed, or stick to specifics
+]
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,

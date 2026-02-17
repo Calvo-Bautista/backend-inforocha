@@ -245,8 +245,8 @@
     <table class="products-table">
         <thead>
             <tr>
-                <th width="20%">SKU</th>
-                <th width="50%">Producto</th>
+                <th width="20%">ARTICULO</th>
+                <th width="50%">DESCRIPCION</th>
                 <th width="10%" class="text-center">Cant.</th>
                 <th width="20%" class="text-right">Subtotal</th>
             </tr>
@@ -254,8 +254,12 @@
         <tbody>
             {% for item in order.items %}
             <tr class="{{ loop.cycle('odd', 'even') }}">
-                <td>{{ item.product.sku if item.product else 'N/A' }}</td>
-                <td>{{ item.product.name if item.product else 'Producto Eliminado' }}</td>
+                <td>
+                    <div><strong>{{ item.product.articulo if item.product else 'N/A' }}</strong></div>
+                </td>
+                <td>
+                    <div>{{ item.product.description if item.product else 'Producto Eliminado' }}</div>
+                </td>
                 <td class="text-center">{{ item.quantity }}</td>
                 <td class="text-right">{{ format_currency(item.price_at_time * item.quantity) }}</td>
             </tr>

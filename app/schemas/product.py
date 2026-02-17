@@ -7,10 +7,9 @@ from app.models.product import ProductCategory
 
 class ProductBase(BaseModel):
     """Base product schema with common fields"""
-    sku: str
-    name: str
-    description: Optional[str] = None
-    price: Decimal = Field(..., ge=0, decimal_places=2)
+    articulo: str
+    description: str
+    price: Decimal = Field(..., gt=0, decimal_places=2)
     stock: int = Field(default=0, ge=0)
     category: ProductCategory
     is_active: bool = True
@@ -23,10 +22,9 @@ class ProductCreate(ProductBase):
 
 class ProductUpdate(BaseModel):
     """Schema for updating a product"""
-    sku: Optional[str] = None
-    name: Optional[str] = None
+    articulo: Optional[str] = None
     description: Optional[str] = None
-    price: Optional[Decimal] = Field(None, ge=0, decimal_places=2)
+    price: Optional[Decimal] = Field(None, ge=0, decimal_places=4)
     stock: Optional[int] = Field(None, ge=0)
     category: Optional[ProductCategory] = None
     is_active: Optional[bool] = None
