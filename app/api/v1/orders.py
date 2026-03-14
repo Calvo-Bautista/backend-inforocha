@@ -434,15 +434,22 @@ async def update_order(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Order not found"
         )
-    
+
+    # Authorization: only logistica/admin/owner can update orders (status changes)
+    if current_user.role not in [UserRole.LOGISTICA, UserRole.ADMIN, UserRole.OWNER]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not enough permissions to update orders"
+        )
+
     # Update order fields
     update_data = order.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(db_order, field, value)
-    
+
     db.commit()
     db.refresh(db_order)
-    
+
     return db_order
 
 

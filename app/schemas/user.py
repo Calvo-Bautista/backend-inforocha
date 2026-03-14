@@ -65,3 +65,9 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     """Schema for token payload data"""
     email: Optional[str] = None
+
+
+class ChangePassword(BaseModel):
+    """Schema for changing user password via request body"""
+    new_password: str = Field(..., min_length=6)
+

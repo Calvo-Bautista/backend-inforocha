@@ -1,13 +1,35 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from app.database import get_db
-from app.models.user import User
-from app.schemas.user import UserCreate, UserUpdate, UserResponse
-from app.api.deps import get_current_user
+from app.models.user import User, UserRole
+from app.schemas.user import UserCreate, UserUpdate, UserResponse, ChangePassword
+from app.api.deps import get_current_user, require_role
 from app.core.security import get_password_hash
 
 router = APIRouter()
+
+
+@router.get("/stats")
+async def get_user_stats(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.OWNER]))
+):
+    """
+    Get global user count by role (active users only).
+    """
+    results = db.query(User.role, func.count(User.id)).filter(
+        User.is_active == True
+    ).group_by(User.role).all()
+
+    stats = {"vendedor": 0, "logistica": 0, "admin": 0, "owner": 0}
+    for role, count in results:
+        role_key = role.value if hasattr(role, 'value') else str(role)
+        if role_key in stats:
+            stats[role_key] = count
+
+    return stats
 
 
 @router.get("/", response_model=List[UserResponse])
@@ -246,7 +268,7 @@ async def delete_user(
 @router.put("/{user_id}/password", status_code=status.HTTP_204_NO_CONTENT)
 async def change_user_password(
     user_id: int,
-    new_password: str = Query(..., min_length=6),
+    body: ChangePassword,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -277,7 +299,7 @@ async def change_user_password(
         )
     
     # Update password
-    db_user.password_hash = get_password_hash(new_password)
+    db_user.password_hash = get_password_hash(body.new_password)
     db.commit()
     
     return None

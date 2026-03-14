@@ -5,7 +5,7 @@ from app.database import get_db
 from app.models.client import Client
 from app.models.client_printer import ClientPrinter
 from app.schemas.client import ClientCreate, ClientUpdate, ClientResponse
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, require_role
 from app.models.user import User, UserRole
 
 router = APIRouter()
@@ -173,6 +173,13 @@ async def update_client(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Client not found"
         )
+
+    # Authorization: only the client's owner or admin/owner can update
+    if current_user.role not in [UserRole.ADMIN, UserRole.OWNER] and db_client.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not enough permissions to update this client"
+        )
     
     # Update client fields (excluding printers)
     update_data = client.model_dump(exclude_unset=True, exclude={'printers'})
@@ -203,7 +210,7 @@ async def update_client(
 async def delete_client(
     client_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.OWNER]))
 ):
     """
     Delete a client.
